@@ -25,11 +25,12 @@ app.get('/', (req, res) => {
 });
 
 // Add new employee to the database
-app.post('/employees', function (req, res) {
-  let newEmployee = { ...req.body };
+app.post('/todoCreate', function (req, res) {
+  let newtodo = { ...req.body };
+  newtodo.createdAt = new Date();
   // console.log("req");
 
-  db.query("INSERT INTO employees SET ?", newEmployee, (error, result) => {
+  db.query("INSERT INTO todo_list SET ?", newtodo, (error, result) => {
     if (error) {
       console.log('error', error);
       return res.status(500).json({ status: "ERROR", error });
@@ -43,7 +44,7 @@ app.post('/employees', function (req, res) {
 app.get('/employees/details/:id', function (req, res) {
   const employeeId = req.params.id;
 
-  db.query("SELECT * FROM employees WHERE id = ?", employeeId, (error, result) => {
+  db.query("SELECT * FROM todo_list WHERE id = ?", employeeId, (error, result) => {
     if (error) {
       console.log('error', error);
       return res.status(500).json({ status: "ERROR", error });
@@ -81,6 +82,34 @@ app.delete('/employees/delete/:id', function (req, res) {
     return res.json({ status: "SUCCESS" });
   });
 });
+
+// Get all todo_list records from the database
+app.get('/todoListAll', function (req, res) {
+  db.query("SELECT * FROM todo_list", (error, result) => {
+    if (error) {
+      console.log('error', error);
+      return res.status(500).json({ status: "ERROR", error });
+    }
+
+    return res.json({ status: "SUCCESS", todoList: result });
+  });
+});
+
+// Get today's todo_list records from the database
+app.get('/todoList', function (req, res) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Set the time to 00:00:00.000
+
+  db.query("SELECT * FROM todo_list WHERE todoDate = ?", [today], (error, result) => {
+    if (error) {
+      console.log('error', error);
+      return res.status(500).json({ status: "ERROR", error });
+    }
+
+    return res.json({ status: "SUCCESS", todoList: result });
+  });
+});
+
 
 app.listen(PORT, function () {
   console.log('Restful API is running on PORT', PORT);
