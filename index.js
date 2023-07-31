@@ -17,6 +17,14 @@ const db = mysql.createConnection({
   database: DB_DATABASE,
 });
 
+
+db.connect((err) => {
+  if(err){
+      throw err;
+  }
+  console.log("---MYSQL CONNECTED---");
+});
+
 app.use(express.json()); // Parse JSON request bodies
 
 app.get('/', (req, res) => {
