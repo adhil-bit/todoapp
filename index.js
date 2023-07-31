@@ -1,38 +1,10 @@
-require('dotenv').config();
 const express = require('express');
-const mysql = require('mysql');
+const db = require('../db/models');
+const todo_list = db.todo_list;
 
 const app = express();
 const PORT = process.env.PORT;
-const DB_HOST = process.env.DB_HOST;
-const DB_DATABASE = process.env.DB_DATABASE;
-const DB_USERNAME = process.env.DB_USERNAME;
-const DB_PASSWORD = process.env.DB_PASSWORD;
 
-const db = mysql.createConnection({
-  user: DB_USERNAME,
-  password: DB_PASSWORD,
-  host: DB_HOST,
-  database: DB_DATABASE,
-  multipleStatements: true,
-  reconnect: true,
-});
-
-// Event listener for MySQL connection error
-db.on('error', (err) => {
-  console.error('MySQL connection error:', err.message);
-  if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
-    // Connection lost or fatal error, attempt to reconnect
-    db.connect((reconnectErr) => {
-      if (reconnectErr) {
-        console.error('MySQL reconnection error:', reconnectErr.message);
-        // You might want to handle the reconnection failure here
-      } else {
-        console.log('---MYSQL RECONNECTED---');
-      }
-    });
-  }
-});
 app.use(express.json()); // Parse JSON request bodies
 
 app.get('/', (req, res) => {
@@ -40,92 +12,96 @@ app.get('/', (req, res) => {
   res.send('Hello, World!');
 });
 
-// Add new employee to the database
-app.post('/todoCreate', function (req, res) {
-  let newtodo = { ...req.body };
-  newtodo.createdAt = new Date();
-  // console.log("req");
+// Add new todo to the database
+app.post('/todoCreate', async function (req, res) {
+  try {
+    let newTodo = { ...req.body };
+    newTodo.createdAt = new Date();
 
-  db.query("INSERT INTO todo_list SET ?", newtodo, (error, result) => {
-    if (error) {
-      console.log('error', error);
-      return res.status(500).json({ status: "ERROR", error });
+    const createdTodo = await todo_list.create(newTodo);
+    return res.json({ status: "SUCCESS", todo: createdTodo });
+  } catch (error) {
+    console.error('error', error);
+    return res.status(500).json({ status: "ERROR", error });
+  }
+});
+
+// Get single todo by id from the database
+app.get('/todo/details/:id', async function (req, res) {
+  try {
+    const todoId = req.params.id;
+
+    const todo = await todo_list.findOne({ where: { id: todoId } });
+    if (!todo) {
+      return res.status(404).json({ status: "ERROR", message: "Todo not found" });
+    }
+
+    return res.json({ status: "SUCCESS", todo: todo });
+  } catch (error) {
+    console.error('error', error);
+    return res.status(500).json({ status: "ERROR", error });
+  }
+});
+
+// Update single todo by id in the database
+app.put('/todo/update/:id', async function (req, res) {
+  try {
+    const todoId = req.params.id;
+    const updatedTodo = { ...req.body };
+
+    const [rowsUpdated, updatedTodos] = await todo_list.update(updatedTodo, { where: { id: todoId } });
+    if (rowsUpdated === 0) {
+      return res.status(404).json({ status: "ERROR", message: "Todo not found" });
+    }
+
+    return res.json({ status: "SUCCESS", updatedTodo: updatedTodos[0] });
+  } catch (error) {
+    console.error('error', error);
+    return res.status(500).json({ status: "ERROR", error });
+  }
+});
+
+// Delete single todo by id from the database
+app.delete('/todo/delete/:id', async function (req, res) {
+  try {
+    const todoId = req.params.id;
+
+    const deletedRowsCount = await todo_list.destroy({ where: { id: todoId } });
+    if (deletedRowsCount === 0) {
+      return res.status(404).json({ status: "ERROR", message: "Todo not found" });
     }
 
     return res.json({ status: "SUCCESS" });
-  });
-});
-
-// Get single employee by id from the database
-app.get('/employees/details/:id', function (req, res) {
-  const employeeId = req.params.id;
-
-  db.query("SELECT * FROM todo_list WHERE id = ?", employeeId, (error, result) => {
-    if (error) {
-      console.log('error', error);
-      return res.status(500).json({ status: "ERROR", error });
-    }
-
-    return res.json({ status: "SUCCESS", employee: result });
-  });
-});
-
-// Update single employee by id from the database
-app.put('/employees/update/:id', function (req, res) {
-  const employeeId = req.params.id;
-  const updatedEmployee = { ...req.body };
-
-  db.query("UPDATE employees SET ? WHERE id = ?", [updatedEmployee, employeeId], (error, result) => {
-    if (error) {
-      console.log('error', error);
-      return res.status(500).json({ status: "ERROR", error });
-    }
-
-    return res.json({ status: "SUCCESS" });
-  });
-});
-
-// Delete single employee by id from the database
-app.delete('/employees/delete/:id', function (req, res) {
-  const employeeId = req.params.id;
-
-  db.query("DELETE FROM employees WHERE id = ?", employeeId, (error, result) => {
-    if (error) {
-      console.log('error', error);
-      return res.status(500).json({ status: "ERROR", error });
-    }
-
-    return res.json({ status: "SUCCESS" });
-  });
+  } catch (error) {
+    console.error('error', error);
+    return res.status(500).json({ status: "ERROR", error });
+  }
 });
 
 // Get all todo_list records from the database
-app.get('/todoListAll', function (req, res) {
-  db.query("SELECT * FROM todo_list", (error, result) => {
-    if (error) {
-      console.log('error', error);
-      return res.status(500).json({ status: "ERROR", error });
-    }
-
-    return res.json({ status: "SUCCESS", todoList: result });
-  });
+app.get('/todoListAll', async function (req, res) {
+  try {
+    const allTodos = await todo_list.findAll();
+    return res.json({ status: "SUCCESS", todoList: allTodos });
+  } catch (error) {
+    console.error('error', error);
+    return res.status(500).json({ status: "ERROR", error });
+  }
 });
 
 // Get today's todo_list records from the database
-app.get('/todoList', function (req, res) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Set the time to 00:00:00.000
+app.get('/todoList', async function (req, res) {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set the time to 00:00:00.000
 
-  db.query("SELECT * FROM todo_list WHERE todoDate = ?", [today], (error, result) => {
-    if (error) {
-      console.log('error', error);
-      return res.status(500).json({ status: "ERROR", error });
-    }
-
-    return res.json({ status: "SUCCESS", todoList: result });
-  });
+    const todayTodos = await todo_list.findAll({ where: { todoDate: today } });
+    return res.json({ status: "SUCCESS", todoList: todayTodos });
+  } catch (error) {
+    console.error('error', error);
+    return res.status(500).json({ status: "ERROR", error });
+  }
 });
-
 
 app.listen(PORT, function () {
   console.log('Restful API is running on PORT', PORT);
