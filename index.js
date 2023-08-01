@@ -1,9 +1,11 @@
 const express = require('express');
-const db = require('../db/models');
-const todo_list = db.todo_list;
+// const db = require('../db/models').todo_list;
+// const todo_list = db.todo_list;
+// const todo_list = require('../db/models').todo_list;
+
 
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT ||3005;
 
 app.use(express.json()); // Parse JSON request bodies
 
