@@ -2,12 +2,55 @@ const express = require('express');
 // const db = require('../db/models').todo_list;
 // const todo_list = db.todo_list;
 // const todo_list = require('../db/models').todo_list;
+const requestIp = require('request-ip');
+// const ipLocation = require('ip-geolocation-api-simple');
+const ipinfo = require('ipinfo');
+
 
 
 const app = express();
-const PORT = process.env.PORT ||3005;
+const PORT = process.env.PORT ||3006;
 
 app.use(express.json()); // Parse JSON request bodies
+
+// Middleware to get the user's IP address
+app.use(requestIp.mw());
+
+app.use(express.json()); // Parse JSON request bodies
+
+app.get('/', (req, res) => {
+  console.log('h1');
+  res.send('Hello, World!');
+});
+
+// Other routes...
+// Get IP address and Location using ipinfo
+app.get('/ip-and-location', async (req, res) => {
+  try {
+    // Get the IP address from the request object
+    const ipAddress = req.clientIp;
+
+    // Fetch location details using ipinfo
+    const ipDetails = await ipinfo(ipAddress);
+
+    return res.json({ status: "SUCCESS", ipAddress, location: ipDetails });
+  } catch (error) {
+    console.error('error', error);
+    return res.status(500).json({ status: "ERROR", error });
+  }
+});
+
+app.get('/device-ip', async (req, res) => {
+  try {
+    // Get the user's public IP address from the request object
+    const ipAddress = req.clientIp;
+
+    return res.json({ status: "SUCCESS", ipAddress });
+  } catch (error) {
+    console.error('error', error);
+    return res.status(500).json({ status: "ERROR", error });
+  }
+});
 
 app.get('/', (req, res) => {
   console.log('h1');
