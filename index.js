@@ -5,11 +5,12 @@ const express = require('express');
 const requestIp = require('request-ip');
 // const ipLocation = require('ip-geolocation-api-simple');
 const ipinfo = require('ipinfo');
+const geoip = require('geoip-lite');
 
 
 
 const app = express();
-const PORT = process.env.PORT ||3006;
+const PORT = process.env.PORT ||3004;
 
 app.use(express.json()); // Parse JSON request bodies
 
@@ -32,6 +33,8 @@ app.get('/ip-and-location', async (req, res) => {
 
     // Fetch location details using ipinfo
     const ipDetails = await ipinfo(ipAddress);
+    console.log("h1");
+    console.log("ipAddress",ipAddress,ipDetails);
 
     return res.json({ status: "SUCCESS", ipAddress, location: ipDetails });
   } catch (error) {
@@ -40,12 +43,16 @@ app.get('/ip-and-location', async (req, res) => {
   }
 });
 
-app.get('/device-ip', async (req, res) => {
+app.get('/ip-details', async (req, res) => {
   try {
     // Get the user's public IP address from the request object
     const ipAddress = req.clientIp;
 
-    return res.json({ status: "SUCCESS", ipAddress });
+    // Use the GeoLite2 database to get detailed IP information
+    const ipDetails = geoip.lookup(ipAddress);
+    console.log("ipDetails",ipDetails);
+
+    return res.json({ status: "SUCCESS", ipAddress, ipDetails });
   } catch (error) {
     console.error('error', error);
     return res.status(500).json({ status: "ERROR", error });
