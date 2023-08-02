@@ -9,7 +9,7 @@ module.exports = (sequelize, DataTypes) => {
          */
         static associate(models) {}
     }
-    User.init(
+    todo_list.init(
         {
             firstName: DataTypes.STRING,
             lastName: DataTypes.STRING,
