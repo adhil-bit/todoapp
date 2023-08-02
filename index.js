@@ -1,5 +1,5 @@
 const express = require('express');
-// const db = require('../db/models').todo_list;
+const todo_list = require('../db/models').todo_list;
 // const todo_list = db.todo_list;
 // const todo_list = require('../db/models').todo_list;
 const requestIp = require('request-ip');
